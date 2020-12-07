@@ -1,43 +1,88 @@
-{% extends 'base.html' %}
-{% load static %}
-{% block title %}Welcome to our Blog{% endblock %}
-{% block stylesheet %}{% endblock %}
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static "admin/css/dashboard.css" %}">
+    <style>
+    caption {
+    background: #7a861f!important;
+}
+    </style>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
 {% block content %}
-    <!-- END #fh5co-header -->
-	{% for p in post %}
-        <article class="col-lg-3 col-md-3 col-sm-3 col-xs-6 col-xxs-12 animate-box">
-				<figure>
-					<a href="{{  p.get_single_post }}"><img src={{ p.image.url }} alt="Image" class="img-responsive"></a>
-				</figure>
-				<span class="fh5co-meta"><a href="{% url 'Blog:topic' name=p.category.name%}">{{ p.category.name }}</a></span>
-                <h2 class="fh5co-article-title"><a href="{{ p.get_single_url }}">{{ p.title }}</a></h2>
-                <h4><a href="{{ p.get_author_url }}">{{ p.article_author.name.get_full_name }}</a> </h4>
-				<span class="fh5co-meta fh5co-date">{{ p.posted_on }}</span>
-			</article>
+<div id="content-main">
 
+{% if app_list %}
+    {% for app in app_list %}
+        <div class="app-{{ app.app_label }} module">
+        <table>
+        <caption>
+            <a href="{{ app.app_url }}" class="section" title="{% blocktrans with name=app.name %}Models in the {{ name }} application{% endblocktrans %}">{{ app.name }}</a>
+        </caption>
+        {% for model in app.models %}
+            <tr class="model-{{ model.object_name|lower }}">
+            {% if model.admin_url %}
+                <th scope="row"><a href="{{ model.admin_url }}">{{ model.name }}</a></th>
+            {% else %}
+                <th scope="row">{{ model.name }}</th>
+            {% endif %}
+
+            {% if model.add_url %}
+                <td><a href="{{ model.add_url }}" class="addlink">{% trans 'Add' %}</a></td>
+            {% else %}
+                <td>&nbsp;</td>
+            {% endif %}
+
+            {% if model.admin_url %}
+                <td><a href="{{ model.admin_url }}" class="changelink">{% trans 'Edit' %}</a></td>
+            {% else %}
+                <td>&nbsp;</td>
+            {% endif %}
+            </tr>
+        {% endfor %}
+        </table>
+        </div>
     {% endfor %}
-      <div class="clear-fix"></div>
-    </div>
-    <div class="pagination">
-    <span class="step-links">
-        {% if post.has_previous %}
-            <a href="?page=1">&laquo; first</a>
-            <a href="?page={{ post.previous_page_number }}">previous</a>
-        {% endif %}
-
-        <span class="current">
-            Page {{ post.number }} of {{ post.paginator.num_pages }}.
-        </span>
-
-        {% if post.has_next %}
-            <a href="?page={{ post.next_page_number }}">next</a>
-            <a href="?page={{ post.paginator.num_pages }}">last &raquo;</a>
-        {% endif %}
-    </span>
+{% else %}
+    <p>{% trans "You don't have permission to edit anything." %}</p>
+{% endif %}
 </div>
-
-{% endblock %}
-{% block script %}
-
 {% endblock %}
 
+{% block sidebar %}
+<div id="content-related">
+    <div class="module" id="recent-actions-module">
+        <h2>{% trans 'Recent Activities' %}</h2>
+        <h3>{% trans 'My Activities' %}</h3>
+            {% load log %}
+            {% get_admin_log 10 as admin_log for_user user %}
+            {% if not admin_log %}
+            <p>{% trans 'None available' %}</p>
+            {% else %}
+            <ul class="actionlist">
+            {% for entry in admin_log %}
+            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+                {% if entry.is_deletion or not entry.get_admin_url %}
+                    {{ entry.object_repr }}
+                {% else %}
+                    <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                {% endif %}
+                <br>
+                {% if entry.content_type %}
+                    <span class="mini quiet">{% filter capfirst %}{{ entry.content_type }}{% endfilter %}</span>
+                {% else %}
+                    <span class="mini quiet">{% trans 'Unknown content' %}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+            </ul>
+            {% endif %}
+    </div>
+</div>
+{% endblock %}
